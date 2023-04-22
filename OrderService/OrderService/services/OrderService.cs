@@ -21,15 +21,6 @@ namespace OrderService.services
             _eventBus = eventBus;
         }
 
-        public int AddAsync(Orders order)
-        {
-            order.Id = 3;
-            _eventBus.Publish(new OrderCreatedEvent { OrderId = order.Id, ProductId = order.ProductId, Quantity = order.Quantity }, "order_exchange", "order.created");
-
-             // return  1;
-            return order.Id;
-        }
-
         public async Task<int> CreateOrderAsync(int productId, int quantity)
         {
             var order = new Orders
@@ -55,30 +46,61 @@ namespace OrderService.services
             throw new NotImplementedException();
         }
 
-        public async Task HandleStockUpdatedEvent(StockUpdatedEvent stockUpdatedEvent)
-        {
-            var order = await _context.Orders.Where(_ => _.Equals(stockUpdatedEvent.OrderId)).FirstOrDefaultAsync();
-            if (order != null)
-            {
-                order.Status = "Confirmed";
-                _context.Orders.Update(order);
-            }
-        }
-
-        public async Task HandleStockUpdateFailedEvent(StockUpdateFailedEvent stockUpdateFailedEvent)
-        {
-            var order = await _context.Orders.Where(_ => _.Equals(stockUpdateFailedEvent.OrderId)).FirstOrDefaultAsync();
-            if (order != null)
-            {
-                order.Status = "Cancelled";
-                _context.Orders.Update(order);
-            }
-        }
-
         public Task UpdateAsync(Orders order)
         {
             throw new NotImplementedException();
         }
+
+        // Eventos Suscritos
+
+        public async Task HandleStockUpdatedEvent(StockUpdatedEvent stockUpdatedEvent)
+        {
+            Console.WriteLine("HANDLE_STOCK_UPDATED_EVENT");
+            Console.WriteLine("OrderId: ", 44);
+            using (var db = new SagaPatternLabContext())
+            {
+                var order = await db.Orders.Where(_ => _.Id.Equals(stockUpdatedEvent.OrderId)).FirstOrDefaultAsync();
+                if (order != null)
+                {
+                    order.Status = "Confirmed";
+
+                    db.Entry(order).State = EntityState.Modified;
+
+                    int resultado = await db.SaveChangesAsync();
+
+                    if(resultado > 0)
+                    {
+                        Console.WriteLine("PEDIDO CONFIRMADO");
+                    }
+                }
+            }
+               
+        }
+
+        public async Task HandleStockUpdateFailedEvent(StockUpdateFailedEvent stockUpdateFailedEvent)
+        {
+            using (var db = new SagaPatternLabContext())
+            {
+                var order = await db.Orders.Where(_ => _.Id.Equals(stockUpdateFailedEvent.OrderId)).FirstOrDefaultAsync();
+                if (order != null)
+                {
+                    order.Status = "Cancelled";
+      
+                    db.Entry(order).State = EntityState.Modified;
+
+                    int resultado = await db.SaveChangesAsync();
+
+                    if (resultado > 0)
+                    {
+                        Console.WriteLine("PEDIDO CANCELADO");
+                    }
+                }
+
+            }
+               
+        }
+
+
     }
 
 

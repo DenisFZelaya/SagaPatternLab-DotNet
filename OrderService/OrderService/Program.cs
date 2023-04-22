@@ -61,8 +61,8 @@ using (var scope = app.Services.CreateScope())
     var eventBus = serviceProvider.GetRequiredService<EventBus>();
 
     // Suscribirnos a eventos del otro microservicio
-    // eventBus.Subscribe<StockUpdatedEvent>("stock_exchange", "order_service_stock_updated_queue", "stock.updated", serviceProvider.GetRequiredService<OrderServices>().HandleStockUpdatedEvent);
-    //eventBus.Subscribe<StockUpdateFailedEvent>("stock_exchange", "order_service_stock_update_failed_queue", "stock.update_failed", serviceProvider.GetRequiredService<OrderServices>().HandleStockUpdateFailedEvent);
+    eventBus.Subscribe<StockUpdatedEvent>("stock_exchange", "order_service_stock_updated_queue", "stock.updated", serviceProvider.GetRequiredService<OrderServices>().HandleStockUpdatedEvent);
+    eventBus.Subscribe<StockUpdateFailedEvent>("stock_exchange", "order_service_stock_update_failed_queue", "stock.update_failed", serviceProvider.GetRequiredService<OrderServices>().HandleStockUpdateFailedEvent);
 }
 
 app.Run();

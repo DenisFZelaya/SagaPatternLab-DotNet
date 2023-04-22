@@ -3,6 +3,7 @@ using StockService.Bus;
 using StockService.Eventos;
 using StockService.Models;
 using System.Threading.Tasks;
+using static NuGet.Packaging.PackagingConstants;
 
 namespace StockService.services
 {
@@ -36,19 +37,34 @@ namespace StockService.services
                 Console.WriteLine("Quantity: " + orderCreatedEvent.Quantity);
                 Console.WriteLine("OrderId: " + orderCreatedEvent.OrderId);
 
-                var product = await _context.Products.Where(_ => _.Id.Equals(orderCreatedEvent.ProductId)).FirstOrDefaultAsync();
-
-                if (product != null && product.Stock >= orderCreatedEvent.Quantity)
+                using(var db = new SagaPatternLabContext())
                 {
-                    product.Stock -= orderCreatedEvent.Quantity;
-                    _context.Products.Update(product);
+                    var product = await db.Products.Where(_ => _.Id.Equals(orderCreatedEvent.ProductId)).FirstOrDefaultAsync();
+                   Console.WriteLine("Nombre producto: " + product?.Name);
+                    if (product != null && product.Stock >= orderCreatedEvent.Quantity)
+                    {
+                        product.Stock -= orderCreatedEvent.Quantity;
 
-                    _eventBus.Publish(new StockUpdatedEvent { OrderId = orderCreatedEvent.OrderId }, "stock_exchange", "stock.updated");
+                        db.Entry(product).State = EntityState.Modified;
+
+                        int resultado = await db.SaveChangesAsync();
+
+                        if (resultado > 0)
+                        {
+                            _eventBus.Publish(new StockUpdatedEvent { OrderId = orderCreatedEvent.OrderId }, "stock_exchange", "stock.updated");
+                        } else
+                        {
+                            _eventBus.Publish(new StockUpdateFailedEvent { OrderId = orderCreatedEvent.OrderId }, "stock_exchange", "stock.update_failed");
+                        }
+                    } 
+                    else
+                    {
+                        //
+                        _eventBus.Publish(new StockUpdateFailedEvent { OrderId = orderCreatedEvent.OrderId }, "stock_exchange", "stock.update_failed");
+                    }
                 }
-                else
-                {
-                    _eventBus.Publish(new StockUpdateFailedEvent { OrderId = orderCreatedEvent.OrderId }, "stock_exchange", "stock.update_failed");
-                }
+
+             
             }
             catch (Exception ex)
             {
