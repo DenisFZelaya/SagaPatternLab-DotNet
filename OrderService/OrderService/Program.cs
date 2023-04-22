@@ -1,6 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using OrderService;
 using OrderService.Bus;
 using OrderService.Eventos;
@@ -16,9 +14,16 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddEntityFrameworkSqlServer()
+.AddDbContext<SagaPatternLabContext>(options =>
+{
+    options.UseSqlServer(builder.Configuration.GetConnectionString("sagaConnection"));
+});
+
 // Agregar modelo de configuracion
 builder.Services.Configure<RabbitMqConfiguration>(builder.Configuration.GetSection("RabbitMQ"));
 
+// Agregar modelo de configuracion
 RabbitMqConfiguration rbConf = new RabbitMqConfiguration
 {
     HostName = builder.Configuration["RabbitMq:HostName"],
@@ -27,23 +32,15 @@ RabbitMqConfiguration rbConf = new RabbitMqConfiguration
     Port = int.Parse(builder.Configuration["RabbitMq:Port"])
 };
 
+// RABBIT MQ CONFIGURACION
 builder.Services.AddSingleton<RabbitMqConfiguration>(rbConf);
 builder.Services.AddSingleton<EventBus>();
 
+// Registrar interfaz
 builder.Services.AddScoped<IOrderRepository, OrderServices>();
-
 builder.Services.AddScoped<OrderServices>();
 
-
-builder.Services.AddEntityFrameworkSqlServer()
-.AddDbContext<SagaPatternLabContext>(options =>
-{
-    options.UseSqlServer(builder.Configuration.GetConnectionString("sagaConnection"));
-});
-
-
 var app = builder.Build();
-
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -62,9 +59,10 @@ using (var scope = app.Services.CreateScope())
 {
     var serviceProvider = scope.ServiceProvider;
     var eventBus = serviceProvider.GetRequiredService<EventBus>();
-    eventBus.Subscribe<StockUpdatedEvent>("stock_exchange", "order_service_stock_updated_queue", "stock.updated", serviceProvider.GetRequiredService<OrderServices>().HandleStockUpdatedEvent);
-    eventBus.Subscribe<StockUpdateFailedEvent>("stock_exchange", "order_service_stock_update_failed_queue", "stock.update_failed", serviceProvider.GetRequiredService<OrderServices>().HandleStockUpdateFailedEvent);
-}
 
+    // Suscribirnos a eventos del otro microservicio
+    // eventBus.Subscribe<StockUpdatedEvent>("stock_exchange", "order_service_stock_updated_queue", "stock.updated", serviceProvider.GetRequiredService<OrderServices>().HandleStockUpdatedEvent);
+    //eventBus.Subscribe<StockUpdateFailedEvent>("stock_exchange", "order_service_stock_update_failed_queue", "stock.update_failed", serviceProvider.GetRequiredService<OrderServices>().HandleStockUpdateFailedEvent);
+}
 
 app.Run();

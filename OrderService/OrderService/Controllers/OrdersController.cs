@@ -34,11 +34,7 @@ namespace OrderService.Controllers
               return NotFound();
             }
 
-            _service.AddAsync(new Models.Orders() { Quantity = 2, Status = "Pending", ProductId = 10});
-
-            return await _context.Orders.ToListAsync();
-
-           
+            return await _context.Orders.ToListAsync();           
         }
 
         // GET: api/Orders/5
@@ -93,20 +89,16 @@ namespace OrderService.Controllers
         // POST: api/Orders
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Orders>> PostOrders(Orders orders)
+        public async Task<ActionResult<Orders>> PostOrders(int productId, int quantity)
         {
           if (_context.Orders == null)
           {
               return Problem("Entity set 'SagaPatternLabContext.Orders'  is null.");
           }
 
-            _service.AddAsync(orders);
+           int resultado = await _service.CreateOrderAsync(productId, quantity);
             
-            
-            _context.Orders.Add(orders);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetOrders", new { id = orders.Id }, orders);
+            return CreatedAtAction("GetOrders", new { id = resultado });
         }
 
         // DELETE: api/Orders/5

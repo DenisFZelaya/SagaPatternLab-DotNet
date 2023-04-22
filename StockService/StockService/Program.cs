@@ -20,6 +20,8 @@ builder.Services.AddEntityFrameworkSqlServer()
     options.UseSqlServer(builder.Configuration.GetConnectionString("sagaConnection"));
 });
 
+// Agregar modelo de configuracion
+builder.Services.Configure<RabbitMqConfiguration>(builder.Configuration.GetSection("RabbitMQ"));
 
 // Agregar modelo de configuracion
 RabbitMqConfiguration rbConf = new RabbitMqConfiguration
@@ -30,11 +32,12 @@ RabbitMqConfiguration rbConf = new RabbitMqConfiguration
     Port = int.Parse(builder.Configuration["RabbitMq:Port"])
 };
 
+// RABBIT MQ CONFIGURACION
 builder.Services.AddSingleton<RabbitMqConfiguration>(rbConf);
 builder.Services.AddSingleton<EventBus>();
 
+// Registrar interfaz
 builder.Services.AddScoped<IOrderRepository, StockServices>();
-
 builder.Services.AddScoped<StockServices>();
 
 var app = builder.Build();
@@ -56,6 +59,8 @@ using (var scope = app.Services.CreateScope())
 {
     var serviceProvider = scope.ServiceProvider;
     var eventBus = serviceProvider.GetRequiredService<EventBus>();
+
+    // Suscribirnos a eventos del otro microservicio
     eventBus.Subscribe<OrderCreatedEvent>("order_exchange", "stock_service_order_created_queue", "order.created", serviceProvider.GetRequiredService<StockServices>().HandleOrderCreatedEvent);
    // eventBus.Subscribe<OrderCancelledEvent>("order_exchange", "stock_service_order_cancelled_queue", "order.cancelled", serviceProvider.GetRequiredService<StockServices().HandleOrderCancelledEvent);
 }

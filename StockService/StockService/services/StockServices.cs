@@ -25,14 +25,17 @@ namespace StockService.services
             return product?.Stock;
         }
 
+        // Cuando se crea una orden en el ms de orders envia un evento que dispara este handler
         public async Task HandleOrderCreatedEvent(OrderCreatedEvent orderCreatedEvent)
         {
-            Console.WriteLine("HANDLE_ORDER_CREATED_EVENT");
-            Console.WriteLine("ProductId: " + orderCreatedEvent.ProductId);
-            Console.WriteLine("Quantity: " + orderCreatedEvent.Quantity);
-            Console.WriteLine("OrderId: " + orderCreatedEvent.OrderId);
+         
             try
             {
+                Console.WriteLine("HANDLE_ORDER_CREATED_EVENT");
+                Console.WriteLine("ProductId: " + orderCreatedEvent.ProductId);
+                Console.WriteLine("Quantity: " + orderCreatedEvent.Quantity);
+                Console.WriteLine("OrderId: " + orderCreatedEvent.OrderId);
+
                 var product = await _context.Products.Where(_ => _.Id.Equals(orderCreatedEvent.ProductId)).FirstOrDefaultAsync();
 
                 if (product != null && product.Stock >= orderCreatedEvent.Quantity)

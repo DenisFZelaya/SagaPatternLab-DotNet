@@ -3,9 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using OrderService.Bus;
 using OrderService.Eventos;
 using OrderService.Models;
-using OrderService.services;
-using System.Threading.Tasks;
-
 using System.Threading.Tasks;
 
 namespace OrderService.services
@@ -42,11 +39,15 @@ namespace OrderService.services
                 Status = "Pending"
             };
 
-           
+            _context.Orders.Add(order);
+            int resultado = await _context.SaveChangesAsync();
 
-            _eventBus.Publish(new OrderCreatedEvent { OrderId = order.Id, ProductId = productId, Quantity = quantity }, "order_exchange", "order.created");
+            if(resultado > 0)
+            {
+                _eventBus.Publish(new OrderCreatedEvent { OrderId = order.Id, ProductId = productId, Quantity = quantity }, "order_exchange", "order.created");
+            }
 
-            return order.Id;
+            return resultado;
         }
 
         public Task<Orders> GetAsync(int orderId)
